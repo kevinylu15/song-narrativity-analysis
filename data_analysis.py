@@ -11,34 +11,26 @@ from scipy.stats import linregress
 
 # Load song narrativity annotations dataset
 df = pd.read_csv("C:/Users/lub11/OneDrive/Documents/SI 671/annotations.tsv", sep='\t')
-print(df.head())
+print(df.head()) # first 5 rows
 
 # ============================================================================
 # EXPLORATORY DATA ANALYSIS
 # ============================================================================
 
-# ============================================================================
-# 1. Data Overview
-# ============================================================================
+# Descriptive Statistics
 
-print(f"Shape: {df.shape}")
-print(f"Time period: {df['year'].min()}-{df['year'].max()}")
-print(f"Categories: {df['cat'].nunique()}")
-
-print("\nMissing values:")
-print(df.isnull().sum()[df.isnull().sum() > 0])
-
+print(f"Shape: {df.shape}") # rows, columns
+print(f"Time period: {df['year'].min()}-{df['year'].max()}") # timeline of data
+print("\nMissing values:") 
+print(df.isnull().sum()[df.isnull().sum() > 0]) # missing values per column
 print("\nSummary statistics:")
 narrative_cols = ['Final AGENT', 'Final EVENTS', 'Final WORLD', 'Final Composite']
-print(df[narrative_cols].describe())
+print(df[narrative_cols].describe()) # descriptive stats
 
-# ============================================================================
-# 2. Distributions
-# ============================================================================
+# Histogram plots for each narrative dimension
 
 fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 colors = ['blue', 'green', 'orange', 'black']
-
 for idx, (col, color) in enumerate(zip(narrative_cols, colors)):
     ax = axes[idx // 2, idx % 2]
     ax.hist(df[col].dropna(), bins=25, color=color, edgecolor='black', alpha=0.7)
@@ -50,32 +42,23 @@ for idx, (col, color) in enumerate(zip(narrative_cols, colors)):
     ax.legend()
     ax.grid(alpha=0.3)
 
-plt.tight_layout()
-plt.savefig('eda_distributions.png', dpi=300, bbox_inches='tight')
+#plt.savefig('eda_distributions.png', dpi=300, bbox_inches='tight')
 plt.show()
 
-# ============================================================================
-# 3. Correlations
-# ============================================================================
+# Correlation Matrix bewteen Narrative Dimensions (Heatmap)
 
 correlation_matrix = df[narrative_cols].corr()
-plt.figure(figsize=(12, 6))
 sns.heatmap(correlation_matrix, annot=True, fmt='.3f', cmap='coolwarm', 
             center=0, square=True, linewidths=2)
 plt.title('Correlation Between Narrative Dimensions')
 plt.tight_layout()
-plt.savefig('eda_correlations.png', dpi=300, bbox_inches='tight')
+#plt.savefig('eda_correlations.png', dpi=300, bbox_inches='tight')
 plt.show()
 
-# ============================================================================
-# 4. Year Trends
-# ============================================================================
+# Yearly Trends in Narrativity (Line Plot)
 
 yearly_means = df.groupby('year')[narrative_cols].mean()
-
-plt.figure(figsize=(12, 6))
-for col, color, label in zip(narrative_cols[:3], colors[:3], 
-                              ['AGENTS', 'EVENTS', 'WORLD']):
+for col, color, label in zip(narrative_cols[:3], colors[:3], ['AGENTS', 'EVENTS', 'WORLD']):
     plt.plot(yearly_means.index, yearly_means[col], 
              marker='o', linewidth=2, label=label, alpha=0.8)
 
@@ -83,58 +66,43 @@ plt.xlabel('Year')
 plt.ylabel('Average Score')
 plt.title('Narrativity Over Time')
 plt.legend()
-plt.grid(alpha=0.3)
 plt.tight_layout()
-plt.savefig('eda_temporal.png', dpi=300, bbox_inches='tight')
+#plt.savefig('eda_temporal.png', dpi=300, bbox_inches='tight')
 plt.show()
 
-# Test for trend
-slope, _, r_val, p_val, _ = linregress(yearly_means.index, 
-                                        yearly_means['Final Composite'])
+# Seeing if there is a Temporal Trend (Linear Regression)
+slope, _, r_val, p_val, _ = linregress(yearly_means.index, yearly_means['Final Composite'])
 print(f"\nLinear trend test (Composite score):")
 print(f"  Slope: {slope:.4f} per year")
 print(f"  R²: {r_val**2:.3f}")
 print(f"  P-value: {p_val:.4f} ({'significant' if p_val < 0.05 else 'not significant'})")
 
-# ============================================================================
-# 5. Genre Comparison
-# ============================================================================
+# Genre Differences in Narrativity (Bar Plot)
 
 genre_means = df.groupby('cat')['Final Composite'].mean().sort_values(ascending=False)
-
-plt.figure(figsize=(12, 6))
-genre_means.plot(kind='barh', color='steelblue', edgecolor='black')
+genre_means.plot(kind='barh')
 plt.xlabel('Average Composite Score')
 plt.title('Narrativity by Genre')
 plt.grid(axis='x', alpha=0.3)
 plt.tight_layout()
-plt.savefig('eda_genres.png', dpi=300, bbox_inches='tight')
+#plt.savefig('eda_genres.png', dpi=300, bbox_inches='tight')
 plt.show()
 
-# ============================================================================
-# 6. Inter-Annotator Agreement
-# ============================================================================
+# Annotator Agreement Analysis
 
 std_cols = ['Agents std', 'Events std', 'World std']
 mean_cols = ['Agents mean', 'Events mean', 'World mean']
-
 for col in std_cols:
     print(f"  {col}: {df[col].mean():.3f}")
-
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-# Boxplot of disagreement
 df[std_cols].boxplot(ax=axes[0], labels=['AGENTS', 'EVENTS', 'WORLD'])
 axes[0].set_title('Annotator Disagreement by Dimension')
 axes[0].set_ylabel('Standard Deviation')
 axes[0].grid(alpha=0.3)
 
-# Mean vs Std scatter
-for mean_col, std_col, color, label in zip(mean_cols, std_cols, 
-                                            ['blue', 'orange', 'green'],
-                                            ['AGENTS', 'EVENTS', 'WORLD']):
+# Mean vs Std scatter Annotator Disagreement
+for mean_col, std_col, color, label in zip(mean_cols, std_cols, ['blue', 'orange', 'green'], ['AGENTS', 'EVENTS', 'WORLD']):
     axes[1].scatter(df[mean_col], df[std_col], alpha=0.5, label=label, s=30)
-
 axes[1].set_xlabel('Mean Score')
 axes[1].set_ylabel('Standard Deviation')
 axes[1].set_title('Score vs Disagreement')
@@ -142,14 +110,10 @@ axes[1].legend()
 axes[1].grid(alpha=0.3)
 
 plt.tight_layout()
-plt.savefig('eda_agreement.png', dpi=300, bbox_inches='tight')
+# plt.savefig('eda_agreement.png', dpi=300, bbox_inches='tight')
 plt.show()
 
-# ============================================================================
-# 7. Summary
-# ============================================================================
-
-
+# Summary of EDA Findings
 print(f"""
 SUMMARY:
 1. Dataset: {len(df)} songs from {df['year'].min()}-{df['year'].max()}
@@ -169,14 +133,21 @@ SUMMARY:
 
 """)
 
+# EDA Conclusion:
+# strong inter-dimension correlations, temporal increase, genre effects suggest narrativity is meaningful in music
+# Looks like we can collapse the 3 dimensions into a smaller set via dimensionality reduction
+
+# Research question for dimensionality reduction: what underlying factors/principal components explain narrativity
+# The goal is to identify key dimensions that capture most variance in narrativity scores across songs.
+# With the high correlations, we can explain 
+
+
 
 # ============================================================================
 # Dimensionality Reduction with PCA
 # ============================================================================
 
-# ============================================================================
-# 1. Scaling and PCA Model Fitting
-# ============================================================================
+# Scaling and Model Fitting
 
 #  Narrative dimensions
 pca_features = ['Final AGENT', 'Final EVENTS', 'Final WORLD']
@@ -190,20 +161,18 @@ X_scaled = scaler.fit_transform(X_final)
 pca = PCA()
 X_pca = pca.fit_transform(X_scaled)
 
-# ============================================================================
-# 2. Variance Explained by Principal Components
-# ============================================================================
+# Variance Explained by Principal Components
 
 # Explained variance
 explained_variance = pca.explained_variance_ratio_
-#print(explained_variance)
+print("\nExplained Variance by Principal Components:")
+print(explained_variance)
 cumulative_variance = np.cumsum(explained_variance)
-#print(cumulative_variance)
+print("\nCumulative Explained Variance by Principal Components:")
+print(cumulative_variance)
 
-# ============================================================================
-# 2. Scree Plots
-# ============================================================================
+# Scree Plots
 
-# ============================================================================
-# 3. Bi Plots
-# ============================================================================
+# Bi Plots
+
+# Singificant Components Loadings
